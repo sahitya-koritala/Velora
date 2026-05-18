@@ -34,6 +34,14 @@ app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'Velora Backend API' });
 });
 
+const path = require("path");
+
+app.use(express.static(path.join(__dirname, "../frontend/dist")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
+});
+
 app.listen(PORT, () => {
   console.log(`Velora Backend Server running on port ${PORT}`);
 });
