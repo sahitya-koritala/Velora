@@ -1,12 +1,9 @@
 const express = require('express');
-const axios = require('axios');
 const Document = require('../models/Document');
 const SearchHistory = require('../models/SearchHistory');
+const { getEmbedding } = require('../lib/embeddings');
 
 const router = express.Router();
-
-// Get the AI Service URL from env, default to local
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
 /**
  * Main Semantic Search Endpoint
@@ -22,16 +19,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Query is required' });
     }
 
-    // Step 1: Get embedding from Python AI Service
-    let embeddingResponse;
-    try {
-      embeddingResponse = await axios.post(`${AI_SERVICE_URL}/embed`, { text: query });
-    } catch (aiError) {
-      console.error("AI Service Error:", aiError.message);
-      return res.status(500).json({ error: 'Failed to generate embedding from AI Service.' });
-    }
-
-    const queryEmbedding = embeddingResponse.data.embedding;
+    const queryEmbedding = await getEmbedding(query);
 
     // Step 2: Perform MongoDB Atlas Vector Search
     // Note: The index 'vector_index' has been successfully created in your database!

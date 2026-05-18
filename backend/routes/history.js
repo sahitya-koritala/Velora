@@ -2,6 +2,7 @@ const express = require('express');
 const SearchHistory = require('../models/SearchHistory');
 const Document = require('../models/Document');
 const Policy = require('../models/Policy');
+const Feedback = require('../models/Feedback');
 const router = express.Router();
 
 router.get('/', async (req, res) => {
@@ -35,6 +36,7 @@ router.post('/activity', async (req, res) => {
 router.delete('/', async (req, res) => {
   try {
     await SearchHistory.deleteMany({});
+    await Feedback.deleteMany({}).catch(() => {});
     res.json({ message: 'History cleared successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to clear history' });
@@ -52,6 +54,8 @@ router.delete('/:id', async (req, res) => {
       await Document.findByIdAndDelete(item.refId).catch(() => {});
     } else if (item.activityType === 'policy' && item.refId) {
       await Policy.findByIdAndDelete(item.refId).catch(() => {});
+    } else if (item.activityType === 'feedback' && item.refId) {
+      await Feedback.findByIdAndDelete(item.refId).catch(() => {});
     }
 
     await SearchHistory.findByIdAndDelete(req.params.id);

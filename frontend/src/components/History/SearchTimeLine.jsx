@@ -65,14 +65,14 @@ export default function SearchTimeline({ queries = [], onReplay, onDelete }) {
                   <Button variant="ghost" size="sm" className="text-xs text-indigo-600" onClick={() => onReplay?.(q)}>
                     <RotateCcw className="w-3 h-3 mr-1" />Replay
                   </Button>
-                  <Button variant="ghost" size="sm" className="text-xs text-rose-500 hover:text-rose-600" onClick={() => onDelete?.(q.id, q._type)}>
+                  <Button variant="ghost" size="sm" className="text-xs text-rose-500 hover:text-rose-600" onClick={() => onDelete?.(q.id, q._type, q.refId)}>
                     <Trash2 className="w-3 h-3 mr-1" />Delete
                   </Button>
                 </div>
               )}
               {q._type && q._type !== 'search' && (
                 <div className="flex items-center gap-2 mt-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <Button variant="ghost" size="sm" className="text-xs text-rose-500 hover:text-rose-600" onClick={() => onDelete?.(q.id, q._type)}>
+                  <Button variant="ghost" size="sm" className="text-xs text-rose-500 hover:text-rose-600" onClick={() => onDelete?.(q.id, q._type, q.refId)}>
                     <Trash2 className="w-3 h-3 mr-1" />Delete
                   </Button>
                 </div>

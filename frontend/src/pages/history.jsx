@@ -29,9 +29,6 @@ export default function History() {
 
   const handleDeleteItem = async (id, type, refId) => {
     if (!window.confirm("Are you sure you want to delete this history item?")) return;
-    if (type === "feedback" && refId) {
-      await apiClient.entities.Feedback.delete(refId);
-    }
     await apiClient.entities.SearchQuery.delete(id);
     refetch();
   };
@@ -102,7 +99,7 @@ export default function History() {
         <SearchTimeline
           queries={filtered}
           onReplay={handleReplay}
-          onDelete={(id, type) => handleDeleteItem(id, type, filtered.find((q) => q.id === id)?.refId)}
+          onDelete={(id, type, refId) => handleDeleteItem(id, type, refId)}
         />
       )}
     </div>

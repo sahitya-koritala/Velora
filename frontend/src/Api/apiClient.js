@@ -1,4 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// Empty string uses Vite dev proxy (/api -> localhost:5000)
+function normalizeApiBase(url) {
+  if (!url) return "";
+  return url.replace(/\/api\/?$/, "").replace(/\/$/, "");
+}
+const API_BASE = normalizeApiBase(import.meta.env.VITE_API_URL ?? "");
 
 async function parseError(res) {
   try {
@@ -22,6 +27,24 @@ function mapHistoryItem(q) {
     _type: type,
     refId: q.refId,
   };
+}
+
+/** Keep the latest audit entry per unique action (refId or query text). */
+function dedupeAuditLogs(entries) {
+  const sorted = [...entries].sort(
+    (a, b) => new Date(b.created_date).getTime() - new Date(a.created_date).getTime()
+  );
+  const seen = new Set();
+
+  return sorted.filter((entry) => {
+    const action = entry.action || "search";
+    const key = entry.refId
+      ? `${action}:${entry.refId}`
+      : `${action}:${(entry.details || "").trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function mapDocument(d) {
@@ -63,7 +86,8 @@ export const apiClient = {
           headers: { "Content-Type": "application/json" },
         });
         if (!res.ok) throw new Error(await parseError(res));
-        return res.json();
+        const p = await res.json();
+        return { ...p, id: p._id, created_date: p.createdAt };
       },
       delete: async (id) =>
         fetch(`${API_BASE}/api/policies/${id}`, { method: "DELETE" }),
@@ -74,15 +98,20 @@ export const apiClient = {
           const res = await fetch(`${API_BASE}/api/history`);
           if (!res.ok) return [];
           const data = await res.json();
-          return data.map((q) => ({
+          const mapped = data.map((q) => ({
             id: q._id,
+            refId: q.refId,
             action: q.activityType || "search",
-            severity: q.resultCount === 0 ? "warning" : "info",
+            severity:
+              q.activityType === "document_delete" || q.resultCount === 0
+                ? "warning"
+                : "info",
             user_id: q.userId || "demo_user",
             ip_address: "127.0.0.1",
             created_date: q.createdAt,
             details: q.query,
           }));
+          return dedupeAuditLogs(mapped);
         } catch {
           return [];
         }
@@ -93,7 +122,18 @@ export const apiClient = {
         try {
           const res = await fetch(`${API_BASE}/api/history`);
           const data = res.ok ? await res.json() : [];
-          return data.map(mapHistoryItem);
+          const mapped = data.map(mapHistoryItem);
+          const seen = new Set();
+          return mapped
+            .sort((a, b) => new Date(b.created_date) - new Date(a.created_date))
+            .filter((item) => {
+              const key = item.refId
+                ? `${item._type}:${item.refId}`
+                : `${item._type}:${(item.query_text || "").trim().toLowerCase()}`;
+              if (seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
         } catch {
           return [];
         }
@@ -101,7 +141,6 @@ export const apiClient = {
       clearAll: async () => {
         const res = await fetch(`${API_BASE}/api/history`, { method: "DELETE" });
         if (!res.ok) throw new Error(await parseError(res));
-        localStorage.removeItem("mock_Feedback");
         return res.json();
       },
       delete: async (id) => {
@@ -152,37 +191,35 @@ export const apiClient = {
         if (!res.ok) throw new Error(await parseError(res));
         return res.json();
       },
+      deleteAll: async () => {
+        const res = await fetch(`${API_BASE}/api/documents`, { method: "DELETE" });
+        if (!res.ok) throw new Error(await parseError(res));
+        return res.json();
+      },
     },
     Feedback: {
       list: async () => {
         try {
-          return JSON.parse(localStorage.getItem("mock_Feedback")) || [];
+          const res = await fetch(`${API_BASE}/api/feedback`);
+          if (!res.ok) return [];
+          const data = await res.json();
+          return data.map((f) => ({ ...f, id: f._id, created_date: f.createdAt }));
         } catch {
           return [];
         }
       },
       create: async (data) => {
-        const existing = JSON.parse(localStorage.getItem("mock_Feedback")) || [];
-        const entry = {
-          ...data,
-          id: Date.now().toString(),
-          created_date: new Date().toISOString(),
-        };
-        existing.push(entry);
-        localStorage.setItem("mock_Feedback", JSON.stringify(existing));
-        await apiClient.entities.SearchQuery.logActivity({
-          query: `Feedback: ${(data.message || "").substring(0, 50)}`,
-          activityType: "feedback",
-          refId: entry.id,
-        }).catch(() => {});
-        return entry;
+        const res = await fetch(`${API_BASE}/api/feedback`, {
+          method: "POST",
+          body: JSON.stringify(data),
+          headers: { "Content-Type": "application/json" },
+        });
+        if (!res.ok) throw new Error(await parseError(res));
+        const entry = await res.json();
+        return { ...entry, id: entry._id, created_date: entry.createdAt };
       },
       delete: async (id) => {
-        const existing = JSON.parse(localStorage.getItem("mock_Feedback")) || [];
-        localStorage.setItem(
-          "mock_Feedback",
-          JSON.stringify(existing.filter((f) => f.id !== id))
-        );
+        await fetch(`${API_BASE}/api/feedback/${id}`, { method: "DELETE" });
       },
     },
   },

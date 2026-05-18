@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 213 100% 95%;
+    /* #E6F2FF (Approximate fallback) */
+    --foreground: 212 33% 18%;
+    /* #1F2D3D */
+    --card: 212 100% 93%;
+    /* #DBEAFE */
+    --card-foreground: 212 33% 18%;
+    --popover: 213 100% 95%;
+    --popover-foreground: 212 33% 18%;
+    --primary: 160 84% 39%;
+    /* #10B981 Sea Green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 47% 85%;
+    /* #C6DCF5 */
+    --secondary-foreground: 212 33% 18%;
+    --muted: 212 25% 85%;
+    --muted-foreground: 212 16% 42%;
+    /* #5B6B7F */
+    --accent: 160 84% 39%;
+    /* #10B981 */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 212 60% 71%;
+    /* #89B2E3 */
+    --input: 212 60% 71%;
+    --ring: 160 84% 39%;
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50 font-sans;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  body {
+    @apply text-foreground antialiased;
+    background: linear-gradient(135deg, #DCEBFF 0%, #C7D7EB 45%, #B8CCE4 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .bg-main-gradient {
+    background: linear-gradient(135deg, #DCEBFF 0%, #C7D7EB 45%, #B8CCE4 100%);
+  }
+
+  .bg-secondary-gradient {
+    background: linear-gradient(135deg, #C6DCF5 0%, #D9E8F8 100%);
+  }
+
+  .bg-sidebar-gradient {
+    background: linear-gradient(180deg, #10B981 0%, #34D399 100%);
+  }
+
+  .bg-card-gradient {
+    background: linear-gradient(135deg, #AFCDF5 0%, #C6DCF5 100%);
+  }
+
+  .bg-hero-glow {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.18), rgba(52, 211, 153, 0.08));
+  }
+
+  .text-primary-dark {
+    color: #1F2D3D;
+  }
+
+  .text-secondary-blue {
+    color: #5B6B7F;
+  }
+
+  .border-divider {
+    border-color: #89B2E3;
+  }
+
+  .glow-highlight {
+    box-shadow: 0 0 20px 2px #7DB8FF;
+  }
+
+  .glass-card-premium {
+    background: linear-gradient(135deg, rgba(175, 205, 245, 0.7) 0%, rgba(198, 220, 245, 0.9) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(137, 178, 227, 0.4);
+    box-shadow: 0 10px 30px -10px rgba(31, 45, 61, 0.15), 0 4px 10px -5px rgba(31, 45, 61, 0.05);
+    border-radius: 1rem;
+  }
+
+  .glass-panel {
+    background: linear-gradient(135deg, rgba(198, 220, 245, 0.6) 0%, rgba(217, 232, 248, 0.8) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(137, 178, 227, 0.3);
+  }
+}
