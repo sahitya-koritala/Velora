@@ -2,10 +2,32 @@ const express = require('express');
 const Document = require('../models/Document');
 const SearchHistory = require('../models/SearchHistory');
 const { getEmbedding } = require('../lib/embeddings');
-const { searchInternalDocuments, vectorSearchDocuments } = require('../lib/internalSearch');
 const { fetchWikipediaResults } = require('../lib/wikipedia');
 const { attachRelevanceScores } = require('../lib/relevance');
 const router = express.Router();
+
+async function vectorSearchDocuments(queryEmbedding, limit = 10) {
+  const searchPipeline = [
+    {
+      $vectorSearch: {
+        index: 'vector_index',
+        path: 'embedding',
+        queryVector: queryEmbedding,
+        numCandidates: 100,
+        limit,
+      },
+    },
+    {
+      $project: {
+        title: 1,
+        content: 1,
+        metadata: 1,
+        score: { $meta: 'vectorSearchScore' },
+      },
+    },
+  ];
+  return Document.aggregate(searchPipeline);
+}
 
 /**
  * AI-powered query suggestions from embeddings + document corpus + past searches
@@ -104,7 +126,20 @@ router.post('/', async (req, res) => {
     const queryEmbedding = await getEmbedding(query);
 
     const [mongoSettled, wikiSettled] = await Promise.allSettled([
-      searchInternalDocuments(query, queryEmbedding, 10),
+      (async () => {
+        try {
+          return await vectorSearchDocuments(queryEmbedding, 10);
+        } catch (vectorErr) {
+          console.warn('Vector search failed, using text fallback:', vectorErr.message);
+          const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+          const docs = await Document.find({
+            $or: [{ title: regex }, { content: regex }],
+          })
+            .limit(10)
+            .lean();
+          return docs.map((d, i) => ({ ...d, score: 1 - i * 0.05 }));
+        }
+      })(),
       fetchWikipediaResults(query, 6),
     ]);
 

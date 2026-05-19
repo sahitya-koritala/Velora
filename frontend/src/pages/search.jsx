@@ -11,23 +11,13 @@ import QueryWarning from "../components/Search/QueryWarning";
 import { getCurrentUserId } from "@/Api/apiClient";
 
 function mapInternalResult(doc) {
-  const meta = doc.metadata || {};
-  const explanations = {
-    semantic: "Matched via MongoDB Atlas semantic vector search",
-    keyword: "Matched via keywords in your internal document title or content",
-  };
-
   return {
     document: {
       ...doc,
       id: doc._id || doc.id,
-      category: meta.category || doc.category,
-      source: meta.source || doc.source,
-      tags: meta.tags || doc.tags,
-      access_level: meta.access_level || doc.access_level,
     },
     similarityScore: doc.score ?? 0,
-    explanation: explanations[doc.matchType] || explanations.semantic,
+    explanation: "Matched via MongoDB Atlas semantic vector search",
   };
 }
 
