@@ -22,7 +22,7 @@ function computeDocumentRelevance(query, doc, vectorScore, rankIndex) {
   const qWords = query
     .toLowerCase()
     .split(/\s+/)
-    .filter((w) => w.length > 1);
+    .filter((w) => w.length > 0);
   const haystack = `${doc.title || ''} ${doc.content || ''}`.toLowerCase();
   if (qWords.length > 0) {
     const matched = qWords.filter((w) => haystack.includes(w)).length;
