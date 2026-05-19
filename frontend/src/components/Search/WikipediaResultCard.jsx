@@ -3,15 +3,13 @@ import { Globe, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { toRelevancePercent, relevanceColors } from "@/lib/relevance";
 
 export default function WikipediaResultCard({ item, rank, similarityScore, explanation }) {
   const [expanded, setExpanded] = useState(false);
 
-  const scorePercent = Math.round((similarityScore || 0) * 100);
-  const scoreColor =
-    scorePercent >= 80 ? "text-emerald-700" : scorePercent >= 60 ? "text-amber-600" : "text-rose-600";
-  const scoreBg =
-    scorePercent >= 80 ? "bg-emerald-500" : scorePercent >= 60 ? "bg-amber-500" : "bg-rose-500";
+  const scorePercent = toRelevancePercent(similarityScore);
+  const { text: scoreColor, bar: scoreBg } = relevanceColors(scorePercent);
 
   return (
     <motion.div
