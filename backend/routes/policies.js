@@ -28,8 +28,9 @@ router.post('/', async (req, res) => {
       status: status || 'pending_approval',
     });
 
+    const actorId = req.body.userId || 'policies@velora.ai';
     await SearchHistory.create({
-      userId: 'user-123',
+      userId: actorId,
       query: `Created Policy: ${newPolicy.name}`,
       activityType: 'policy',
       refId: String(newPolicy._id),

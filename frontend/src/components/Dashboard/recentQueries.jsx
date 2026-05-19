@@ -13,12 +13,20 @@ const intentColors = {
  unknown: "bg-slate-100 text-slate-700",
 };
 
-export default function RecentQueries({ queries = [], onReplay }) {
+export default function RecentQueries({ queries = [], onReplay, loading }) {
+ if (loading) {
+ return (
+ <div className="glass-card-premium rounded-xl border border-divider p-8 text-center animate-pulse">
+ <p className="text-sm text-secondary-blue">Loading recent searches...</p>
+ </div>
+ );
+ }
+
  if (queries.length === 0) {
  return (
  <div className="glass-card-premium rounded-xl border border-divider p-8 text-center">
  <Clock className="w-8 h-8 text-secondary-blue mx-auto mb-2" />
- <p className="text-sm text-secondary-blue">No search history yet</p>
+ <p className="text-sm text-secondary-blue">No searches yet. Run a search to see activity here.</p>
  </div>
  );
  }

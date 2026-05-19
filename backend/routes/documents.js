@@ -37,8 +37,9 @@ router.post('/', async (req, res) => {
       embedding,
     });
 
+    const actorId = req.body.userId || 'documents@velora.ai';
     await SearchHistory.create({
-      userId: 'user-123',
+      userId: actorId,
       query: `Added Document: ${newDoc.title}`,
       activityType: 'document',
       refId: String(newDoc._id),

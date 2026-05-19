@@ -68,7 +68,7 @@ async function seedIfEmpty() {
           embedding,
         });
         await SearchHistory.create({
-          userId: 'system',
+          userId: 'system@velora.ai',
           query: `Added Document: ${created.title}`,
           activityType: 'document',
           refId: String(created._id),
@@ -84,7 +84,7 @@ async function seedIfEmpty() {
       for (const policy of SEED_POLICIES) {
         const created = await Policy.create(policy);
         await SearchHistory.create({
-          userId: 'system',
+          userId: 'system@velora.ai',
           query: `Created Policy: ${created.name}`,
           activityType: 'policy',
           refId: String(created._id),

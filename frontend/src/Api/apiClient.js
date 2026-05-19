@@ -61,6 +61,28 @@ function mapDocument(d) {
 }
 
 export const apiClient = {
+  search: {
+    suggestions: async (query) => {
+      if (!query || query.trim().length < 2) return [];
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/search/suggestions?q=${encodeURIComponent(query.trim())}`
+        );
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.suggestions || [];
+      } catch {
+        return [];
+      }
+    },
+  },
+  dashboard: {
+    getStats: async () => {
+      const res = await fetch(`${API_BASE}/api/history/dashboard`);
+      if (!res.ok) throw new Error(await parseError(res));
+      return res.json();
+    },
+  },
   entities: {
     SearchPolicy: {
       list: async () => {
@@ -106,7 +128,7 @@ export const apiClient = {
               q.activityType === "document_delete" || q.resultCount === 0
                 ? "warning"
                 : "info",
-            user_id: q.userId || "demo_user",
+            user_id: q.userId || "system@velora.ai",
             ip_address: "127.0.0.1",
             created_date: q.createdAt,
             details: q.query,
@@ -169,6 +191,7 @@ export const apiClient = {
         }
       },
       create: async (data) => {
+        const userId = data.userId || (await getCurrentUserId());
         const payload = {
           title: data.title,
           content: data.content || data.title,
@@ -176,6 +199,7 @@ export const apiClient = {
           source: data.source || "User Upload",
           tags: data.tags || [],
           access_level: data.access_level || "public",
+          userId,
         };
         const res = await fetch(`${API_BASE}/api/documents`, {
           method: "POST",
@@ -262,3 +286,12 @@ export const apiClient = {
   },
 };
 export const logUserAction = (action, details) => console.log(action, details);
+
+export async function getCurrentUserId() {
+  try {
+    const user = await apiClient.auth.me();
+    return user.email || user.full_name || "admin@velora.ai";
+  } catch {
+    return "admin@velora.ai";
+  }
+}

@@ -26,8 +26,9 @@ router.post('/', async (req, res) => {
       status: status || 'new',
     });
 
+    const actorId = email?.trim() || name?.trim() || 'feedback@velora.ai';
     await SearchHistory.create({
-      userId: 'user-123',
+      userId: actorId,
       query: `Feedback: ${entry.message.substring(0, 60)}`,
       activityType: 'feedback',
       refId: String(entry._id),

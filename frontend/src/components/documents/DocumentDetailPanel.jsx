@@ -1,5 +1,5 @@
 import React from "react";
-import { X, FileText, Tag, Eye, Clock, Shield, BarChart3, Trash2 } from "lucide-react";
+import { X, FileText, Tag, Clock, Shield, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -44,21 +44,24 @@ export default function DocumentDetailPanel({ document, onClose, onDelete, delet
  </div>
  </div>
 
- <div className="grid grid-cols-3 gap-3">
- <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-center">
- <Eye className="w-4 h-4 text-slate-400 mx-auto mb-1" />
- <p className="text-sm font-bold text-slate-900 dark: text-primary-dark ">{document.view_count || 0}</p>
- <p className="text-[10px] text-slate-500">Views</p>
+ <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-4">
+ <div className="flex items-center gap-3">
+ <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
+ <Clock className="h-5 w-5 text-emerald-700" />
  </div>
- <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-center">
- <BarChart3 className="w-4 h-4 text-slate-400 mx-auto mb-1" />
- <p className="text-sm font-bold text-slate-900 dark: text-primary-dark ">{document.relevance_score ? `${Math.round(document.relevance_score * 100)}%` : "N/A"}</p>
- <p className="text-[10px] text-slate-500">Relevance</p>
+ <div>
+ <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Created</p>
+ <p className="text-base font-bold text-emerald-950">
+ {document.created_date
+ ? format(new Date(document.created_date), "MMM d, yyyy")
+ : "N/A"}
+ </p>
+ {document.created_date && (
+ <p className="text-xs text-emerald-700">
+ {format(new Date(document.created_date), "h:mm a")}
+ </p>
+ )}
  </div>
- <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 text-center">
- <Clock className="w-4 h-4 text-slate-400 mx-auto mb-1" />
- <p className="text-sm font-bold text-slate-900 dark: text-primary-dark ">{document.created_date ? format(new Date(document.created_date), "MMM d") : "N/A"}</p>
- <p className="text-[10px] text-slate-500">Created</p>
  </div>
  </div>
 

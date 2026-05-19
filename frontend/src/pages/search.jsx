@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -7,6 +7,7 @@ import { Sparkles, FileText, Clock } from "lucide-react";
 import SearchBar from "../components/Search/SearchBar";
 import SearchResultCard from "../components/Search/SearchResultCard";
 import QueryWarning from "../components/Search/QueryWarning";
+import { getCurrentUserId } from "@/Api/apiClient";
 
 export default function Search() {
  const [searchMode, setSearchMode] = useState("semantic");
@@ -53,10 +54,11 @@ export default function Search() {
 
  try {
  const API_BASE = import.meta.env.VITE_API_URL ?? "";
+ const userId = await getCurrentUserId();
  const response = await fetch(`${API_BASE}/api/search`, {
  method: "POST",
  headers: { "Content-Type": "application/json" },
- body: JSON.stringify({ query: query, userId: "user-123" })
+ body: JSON.stringify({ query, userId }),
  });
 
  if (!response.ok) {
@@ -81,6 +83,8 @@ export default function Search() {
 
  queryClient.invalidateQueries({ queryKey: ["past-queries"] });
  queryClient.invalidateQueries({ queryKey: ["all-history"] });
+ queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+ queryClient.invalidateQueries({ queryKey: ["audit-logs"] });
  }, [searchMode, pastQueries, queryClient]);
 
  const handleFeedback = async (docId, type) => {
@@ -99,6 +103,12 @@ export default function Search() {
  setSuggestions([]);
  handleSearch(suggestion);
  };
+
+ useEffect(() => {
+ const params = new URLSearchParams(window.location.search);
+ const q = params.get("q");
+ if (q) handleSearch(q);
+ }, [handleSearch]);
 
  return (
  <div className="min-h-screen bg-transparent ">

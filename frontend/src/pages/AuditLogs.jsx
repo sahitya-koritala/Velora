@@ -38,7 +38,9 @@ export default function AuditLogs() {
  acc[id] = (acc[id] || 0) + 1;
  return acc;
  }, {});
- const mostActiveUser = Object.keys(userCounts).sort((a, b) => userCounts[b] - userCounts[a])[0] || "None";
+ const sortedUsers = Object.entries(userCounts).sort((a, b) => b[1] - a[1]);
+ const mostActiveUser = sortedUsers[0]?.[0] || "None";
+ const mostActiveCount = sortedUsers[0]?.[1] || 0;
 
  const actionCounts = filtered.reduce((acc, l) => {
  if (!l.action) return acc;
@@ -105,6 +107,7 @@ export default function AuditLogs() {
  <UsersIcon className="w-4 h-4 text-emerald-500" /> <span className="text-xs font-medium uppercase tracking-wider">Most Active User</span>
  </div>
  <div className="text-lg font-bold text-slate-900 truncate" title={mostActiveUser}>{mostActiveUser}</div>
+ <p className="text-[10px] text-slate-400 mt-0.5">{mostActiveCount} event{mostActiveCount !== 1 ? "s" : ""}</p>
  </div>
  <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
  <div className="flex items-center gap-3 text-slate-500 mb-2">

@@ -14,6 +14,65 @@ router.get('/', async (req, res) => {
   }
 });
 
+/** Dashboard metrics: searches only (not document/policy uploads) */
+router.get('/dashboard', async (req, res) => {
+  try {
+    const searches = await SearchHistory.find({ activityType: 'search' })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const searchesToday = searches.filter((s) => new Date(s.createdAt) >= startOfToday);
+    const successful = searches.filter((s) => (s.resultCount ?? 0) > 0);
+    const successRate =
+      searches.length > 0 ? Math.round((successful.length / searches.length) * 100) : 0;
+
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const chartData = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+      dayStart.setDate(dayStart.getDate() - i);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+
+      const dayItems = searches.filter((s) => {
+        const t = new Date(s.createdAt);
+        return t >= dayStart && t < dayEnd;
+      });
+
+      chartData.push({
+        day: dayLabels[dayStart.getDay()],
+        date: dayStart.toISOString(),
+        queries: dayItems.length,
+        successful: dayItems.filter((s) => (s.resultCount ?? 0) > 0).length,
+      });
+    }
+
+    const recentSearches = searches.slice(0, 10).map((s) => ({
+      id: s._id,
+      query_text: s.query,
+      was_successful: (s.resultCount ?? 0) > 0,
+      result_count: s.resultCount ?? 0,
+      created_date: s.createdAt,
+      user_id: s.userId,
+    }));
+
+    res.json({
+      searchesToday: searchesToday.length,
+      totalSearches: searches.length,
+      successRate,
+      chartData,
+      recentSearches,
+    });
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+  }
+});
+
 router.post('/activity', async (req, res) => {
   try {
     const { query, activityType, refId, userId, resultCount } = req.body;
