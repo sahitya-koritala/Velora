@@ -2,7 +2,6 @@ const express = require('express');
 const Document = require('../models/Document');
 const SearchHistory = require('../models/SearchHistory');
 const { getEmbedding } = require('../lib/embeddings');
-const { fetchWikipediaResults } = require('../lib/wikipedia');
 const router = express.Router();
 
 async function vectorSearchDocuments(queryEmbedding, limit = 10) {
@@ -124,26 +123,19 @@ router.post('/', async (req, res) => {
 
     const queryEmbedding = await getEmbedding(query);
 
-    const [mongoSettled, wikiSettled] = await Promise.allSettled([
-      (async () => {
-        try {
-          return await vectorSearchDocuments(queryEmbedding, 10);
-        } catch (vectorErr) {
-          console.warn('Vector search failed, using text fallback:', vectorErr.message);
-          const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-          const docs = await Document.find({
-            $or: [{ title: regex }, { content: regex }],
-          })
-            .limit(10)
-            .lean();
-          return docs.map((d, i) => ({ ...d, score: 1 - i * 0.05 }));
-        }
-      })(),
-      fetchWikipediaResults(query, 5),
-    ]);
-
-    const results = mongoSettled.status === 'fulfilled' ? mongoSettled.value : [];
-    const wikipediaResults = wikiSettled.status === 'fulfilled' ? wikiSettled.value : [];
+    let results = [];
+    try {
+      results = await vectorSearchDocuments(queryEmbedding, 10);
+    } catch (vectorErr) {
+      console.warn('Vector search failed, using text fallback:', vectorErr.message);
+      const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      results = await Document.find({
+        $or: [{ title: regex }, { content: regex }],
+      })
+        .limit(10)
+        .lean();
+      results = results.map((d, i) => ({ ...d, score: 1 - i * 0.05 }));
+    }
 
     const actorId = userId || 'admin@velora.ai';
 
@@ -157,9 +149,7 @@ router.post('/', async (req, res) => {
     res.json({
       query,
       resultsCount: results.length,
-      wikipediaCount: wikipediaResults.length,
       results,
-      wikipediaResults,
     });
   } catch (error) {
     console.error('Search Error:', error);
