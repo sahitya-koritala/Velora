@@ -3,7 +3,6 @@ const Document = require('../models/Document');
 const SearchHistory = require('../models/SearchHistory');
 const { getEmbedding } = require('../lib/embeddings');
 const { fetchWikipediaResults } = require('../lib/wikipedia');
-const { attachRelevanceScores } = require('../lib/relevance');
 const router = express.Router();
 
 async function vectorSearchDocuments(queryEmbedding, limit = 10) {
@@ -140,32 +139,27 @@ router.post('/', async (req, res) => {
           return docs.map((d, i) => ({ ...d, score: 1 - i * 0.05 }));
         }
       })(),
-      fetchWikipediaResults(query, 6),
+      fetchWikipediaResults(query, 5),
     ]);
 
-    let results = mongoSettled.status === 'fulfilled' ? mongoSettled.value : [];
+    const results = mongoSettled.status === 'fulfilled' ? mongoSettled.value : [];
     const wikipediaResults = wikiSettled.status === 'fulfilled' ? wikiSettled.value : [];
 
-    results = attachRelevanceScores(query, results).sort((a, b) => (b.score || 0) - (a.score || 0));
-    const sortedWiki = [...wikipediaResults].sort((a, b) => (b.score || 0) - (a.score || 0));
-
-    const totalMatches = results.length + sortedWiki.length;
     const actorId = userId || 'admin@velora.ai';
 
     SearchHistory.create({
       userId: actorId,
       query,
       activityType: 'search',
-      resultCount: totalMatches,
+      resultCount: results.length,
     }).catch((err) => console.error('Failed to log search history:', err));
 
     res.json({
       query,
       resultsCount: results.length,
       wikipediaCount: wikipediaResults.length,
-      totalMatches,
       results,
-      wikipediaResults: sortedWiki,
+      wikipediaResults,
     });
   } catch (error) {
     console.error('Search Error:', error);

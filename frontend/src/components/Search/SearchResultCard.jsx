@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { motion } from "framer-motion";
 
 import { useAuth } from "@/lib/AuthContext";
-import { toRelevancePercent, relevanceColors } from "@/lib/relevance";
 import { toast } from "react-hot-toast";
 
 const categoryColors = {
@@ -29,8 +28,9 @@ export default function SearchResultCard({ document, rank, similarityScore, expl
 
  const { user } = useAuth();
 
- const scorePercent = toRelevancePercent(similarityScore);
- const { text: scoreColor, bar: scoreBg } = relevanceColors(scorePercent);
+ const scorePercent = Math.round((similarityScore || 0) * 100);
+ const scoreColor = scorePercent >= 80 ? "text-primary-dark0" : scorePercent >= 60 ? "text-amber-500" : "text-rose-500";
+ const scoreBg = scorePercent >= 80 ? "bg-emerald-500" : scorePercent >= 60 ? "bg-amber-500" : "bg-rose-500";
 
  const handleFeedback = (type) => {
  setFeedback(type);
@@ -107,7 +107,7 @@ export default function SearchResultCard({ document, rank, similarityScore, expl
  </div>
  <span className={`text-sm font-bold ${scoreColor}`}>{scorePercent}%</span>
  </div>
- <span className="text-[10px] text-secondary-blue uppercase tracking-wider">relevance</span>
+ <span className="text-[10px] text-secondary-blue uppercase tracking-wider">match</span>
  </div>
  </div>
 

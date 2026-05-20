@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
-import { Sparkles, Clock, Database, Globe } from "lucide-react";
+import { Sparkles, FileText, Clock, Database, Globe } from "lucide-react";
 
 import SearchBar from "../components/Search/SearchBar";
 import SearchResultCard from "../components/Search/SearchResultCard";
@@ -70,6 +70,22 @@ export default function Search() {
       setInternalResults([]);
       setWikipediaResults([]);
 
+      const failedQueries = pastQueries.filter(
+        (q) =>
+          !q.was_successful &&
+          q.query_text.toLowerCase().includes(query.toLowerCase().split(" ")[0])
+      );
+      if (failedQueries.length >= 2) {
+        setWarning(
+          `Similar queries have returned poor results ${failedQueries.length} times before.`
+        );
+        const successfulAlt = pastQueries
+          .filter((q) => q.was_successful)
+          .slice(0, 3)
+          .map((q) => q.query_text);
+        setSuggestions(successfulAlt);
+      }
+
       try {
         const API_BASE = import.meta.env.VITE_API_URL ?? "";
         const userId = await getCurrentUserId();
@@ -85,34 +101,8 @@ export default function Search() {
 
         const data = await response.json();
 
-        const internal = (data.results || []).map(mapInternalResult);
-        const wiki = (data.wikipediaResults || []).map(mapWikipediaResult);
-        const totalMatches = internal.length + wiki.length;
-
-        setInternalResults(internal);
-        setWikipediaResults(wiki);
-
-        if (totalMatches === 0) {
-          const failedQueries = pastQueries.filter(
-            (q) =>
-              !q.was_successful &&
-              q.query_text.toLowerCase().includes(query.toLowerCase().split(" ")[0])
-          );
-          if (failedQueries.length >= 2) {
-            setWarning(
-              `Similar queries have returned poor results ${failedQueries.length} times before.`
-            );
-            setSuggestions(
-              pastQueries
-                .filter((q) => q.was_successful)
-                .slice(0, 3)
-                .map((q) => q.query_text)
-            );
-          }
-        } else {
-          setWarning(null);
-          setSuggestions([]);
-        }
+        setInternalResults((data.results || []).map(mapInternalResult));
+        setWikipediaResults((data.wikipediaResults || []).map(mapWikipediaResult));
       } catch (err) {
         console.error(err);
         setWarning(
@@ -155,13 +145,12 @@ export default function Search() {
   const hasInternal = internalResults.length > 0;
   const hasWiki = wikipediaResults.length > 0;
   const hasAnyResults = hasInternal || hasWiki;
-  const showHero = !currentQuery && !isSearching;
-  const showResultsLayout = currentQuery && !isSearching;
+  const showHero = !hasAnyResults && !isSearching;
 
   return (
     <div className="min-h-screen bg-transparent">
       <div
-        className={`transition-all duration-500 ${showResultsLayout ? "pt-8 pb-6" : "pt-24 pb-16"}`}
+        className={`transition-all duration-500 ${hasAnyResults ? "pt-8 pb-6" : "pt-24 pb-16"}`}
       >
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           {showHero && (
@@ -217,9 +206,10 @@ export default function Search() {
           </div>
         )}
 
-        {showResultsLayout && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-10">
-            <section>
+        {!isSearching && hasAnyResults && (
+          <div className="space-y-10">
+            {hasInternal && (
+              <section>
                 <div className="flex items-center gap-2 mb-4">
                   <Database className="w-5 h-5 text-[#10B981]" />
                   <h2 className="text-lg font-semibold text-primary-dark">
@@ -229,7 +219,6 @@ export default function Search() {
                     ({internalResults.length} from MongoDB Atlas)
                   </span>
                 </div>
-              {hasInternal ? (
                 <div className="space-y-3">
                   {internalResults.map((r, i) => (
                     <SearchResultCard
@@ -244,14 +233,11 @@ export default function Search() {
                     />
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-secondary-blue rounded-lg border border-divider bg-white/60 px-4 py-3">
-                  No internal documents matched this query.
-                </p>
-              )}
-            </section>
+              </section>
+            )}
 
-            <section>
+            {hasWiki && (
+              <section>
                 <div className="flex items-center gap-2 mb-4">
                   <Globe className="w-5 h-5 text-sky-600" />
                   <h2 className="text-lg font-semibold text-primary-dark">
@@ -261,7 +247,6 @@ export default function Search() {
                     ({wikipediaResults.length} from Wikipedia)
                   </span>
                 </div>
-              {hasWiki ? (
                 <div className="space-y-3">
                   {wikipediaResults.map((r, i) => (
                     <WikipediaResultCard
@@ -273,13 +258,19 @@ export default function Search() {
                     />
                   ))}
                 </div>
-              ) : (
-                <p className="text-sm text-sky-700 rounded-lg border border-sky-200 bg-sky-50/80 px-4 py-3">
-                  No Wikipedia articles matched this query.
-                </p>
-              )}
-            </section>
-          </motion.div>
+              </section>
+            )}
+          </div>
+        )}
+
+        {!isSearching && !hasAnyResults && currentQuery && (
+          <div className="text-center py-16">
+            <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+            <p className="text-primary-dark">No matching results found</p>
+            <p className="text-sm text-secondary-blue mt-1">
+              Try rephrasing your query or use different keywords
+            </p>
+          </div>
         )}
 
         {!isSearching && !currentQuery && pastQueries.length > 0 && (
