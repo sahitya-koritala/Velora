@@ -19,7 +19,6 @@ async function vectorSearchDocuments(queryEmbedding, limit = 10) {
     },
     {
       $project: {
-        _id: 1,
         title: 1,
         content: 1,
         metadata: 1,
@@ -28,77 +27,6 @@ async function vectorSearchDocuments(queryEmbedding, limit = 10) {
     },
   ];
   return Document.aggregate(searchPipeline);
-}
-
-function isZeroVector(embedding) {
-  return !Array.isArray(embedding) || embedding.length === 0 || embedding.every((v) => v === 0);
-}
-
-/** Match any word from the query in title or content (used when vector search is empty). */
-async function keywordSearchDocuments(query, limit = 10) {
-  const terms = query
-    .trim()
-    .split(/\s+/)
-    .filter((t) => t.length > 0);
-  if (!terms.length) return [];
-
-  const orClauses = [];
-  for (const term of terms) {
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(escaped, 'i');
-    orClauses.push({ title: re }, { content: re });
-  }
-
-  let docs = await Document.find({ $or: orClauses }).limit(limit).lean();
-
-  if (docs.length === 0) {
-    const phrase = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-    docs = await Document.find({ $or: [{ title: phrase }, { content: phrase }] })
-      .limit(limit)
-      .lean();
-  }
-
-  return docs
-    .map((doc) => {
-      const haystack = `${doc.title || ''} ${doc.content || ''}`.toLowerCase();
-      const matched = terms.filter((t) => haystack.includes(t.toLowerCase())).length;
-      const score = 0.25 + (matched / terms.length) * 0.65;
-      return { ...doc, score: Math.min(0.95, score) };
-    })
-    .sort((a, b) => (b.score || 0) - (a.score || 0));
-}
-
-function mergeInternalResults(vectorDocs, keywordDocs) {
-  const byId = new Map();
-
-  for (const doc of [...vectorDocs, ...keywordDocs]) {
-    const id = String(doc._id);
-    const prev = byId.get(id);
-    if (!prev || (doc.score || 0) > (prev.score || 0)) {
-      byId.set(id, doc);
-    }
-  }
-
-  return Array.from(byId.values()).sort((a, b) => (b.score || 0) - (a.score || 0));
-}
-
-async function searchInternalDocuments(query, queryEmbedding, limit = 10) {
-  let vectorDocs = [];
-  if (!isZeroVector(queryEmbedding)) {
-    try {
-      vectorDocs = await vectorSearchDocuments(queryEmbedding, limit);
-    } catch (err) {
-      console.warn('Vector search failed:', err.message);
-    }
-  }
-
-  const keywordDocs = await keywordSearchDocuments(query, limit);
-
-  if (vectorDocs.length === 0) {
-    return keywordDocs;
-  }
-
-  return mergeInternalResults(vectorDocs, keywordDocs).slice(0, limit);
 }
 
 /**
@@ -198,7 +126,20 @@ router.post('/', async (req, res) => {
     const queryEmbedding = await getEmbedding(query);
 
     const [mongoSettled, wikiSettled] = await Promise.allSettled([
-      searchInternalDocuments(query, queryEmbedding, 10),
+      (async () => {
+        try {
+          return await vectorSearchDocuments(queryEmbedding, 10);
+        } catch (vectorErr) {
+          console.warn('Vector search failed, using text fallback:', vectorErr.message);
+          const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+          const docs = await Document.find({
+            $or: [{ title: regex }, { content: regex }],
+          })
+            .limit(10)
+            .lean();
+          return docs.map((d, i) => ({ ...d, score: 1 - i * 0.05 }));
+        }
+      })(),
       fetchWikipediaResults(query, 6),
     ]);
 
