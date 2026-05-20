@@ -19,6 +19,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import ChatbotWidget from "@/components/Chatbot/ChatbotWidget";
 
 const NAV_ITEMS = [
   { name: "Home", icon: BrainCircuit, page: "Home" },
@@ -144,6 +145,7 @@ export default function Layout({ children, currentPageName }) {
       <main className="lg:ml-[320px] min-h-screen pt-20 pb-8 px-4 sm:px-8 lg:pt-8 transition-all">
         {children}
       </main>
+      <ChatbotWidget />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ const documentsRoutes = require('./routes/documents');
 const historyRoutes = require('./routes/history');
 const policiesRoutes = require('./routes/policies');
 const feedbackRoutes = require('./routes/feedback');
+const chatRoutes = require('./routes/chat');
 const { seedIfEmpty } = require('./lib/seedOnStartup');
 
 const app = express();
@@ -29,6 +30,7 @@ app.use('/api/documents', documentsRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/policies', policiesRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/chat', chatRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'healthy', service: 'Velora Backend API' });
